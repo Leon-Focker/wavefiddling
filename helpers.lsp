@@ -3,21 +3,13 @@
 (in-package :layers)
 
 ;; ** wavefiddler
-
-(let ((src-pathname  (or *load-truename* *compile-file-truename*)))
-  (setf src-pathname
-	(make-pathname :directory (pathname-directory src-pathname)
-		       :device (pathname-device src-pathname)))
-
-  (defun this-path (name)
-    (format nil "~a~a" src-pathname name)))
   
 (defun run-wavefiddler (argument-list &optional path-to-fiddler output)
   (unless (listp argument-list)
     (error "argument-list must be and list but is: ~a" argument-list))
   (cl-user::run-program (or path-to-fiddler
-			    #+unix (this-path "wavefiddler")
-			    #-unix (this-path "wavefiddler.exe"))
+			    #+unix (wavefiddling-path "wavefiddler")
+			    #-unix (wavefiddling-path "wavefiddler.exe"))
 			argument-list
 			:wait t
 			:output (or output *standard-output*)))
@@ -31,8 +23,8 @@
 		      verbose
 		      (output "output/"))
   (let ((arguments (list (write-to-string nr-of-frames) "-i"
-			 (this-path output) "-o"
-			 (this-path source))))
+			 (wavefiddling-path output) "-o"
+			 (wavefiddling-path source))))
     (when fft-size
       (push "-f" arguments)
       (push (write-to-string fft-size) arguments))
@@ -40,7 +32,7 @@
       (push "-S" arguments))
     (when name
       (push "-n" arguments)
-      (push (this-path name) arguments))
+      (push (wavefiddling-path name) arguments))
     (when help
       (push "-h" arguments))
     (when verbose
@@ -66,7 +58,7 @@
 
 (defmacro wsound (name &body body)
   `(with-sound (:header-type clm::mus-riff :sampling-rate 48000
-		:output (format nil "~a~a" (this-path ,name) ".wav")
+		:output (format nil "~a~a" (wavefiddling-path ,name) ".wav")
 		:channels 2 :play nil :scaled-to 0.98
 		:force-recomputation nil)
      ,@body))
@@ -78,13 +70,12 @@
 	  :name (first info)
 	  :duration (parse-integer (second info))
 	  :pitch (parse-integer (third info)))))
-  
 
 ;;; returns a list of p-lists. Each p-list contains info for a soundfile within
 ;;; folder: (path: ... name: ... duration: ... pitch: ...)
 ;;; duration is in milliseconds, pitch in Hz
 (defun parse-wavefiddler-sound-files (folder)
-  (let* ((soundfiles (get-sndfiles (this-path folder)))
+  (let* ((soundfiles (get-sndfiles (wavefiddling-path folder)))
 	 (result))
     (loop for sound in soundfiles
 	  do (push (parse-wavefiddler-sound-file sound) result))
@@ -97,8 +88,12 @@
 		      :pitch (floor (midi-to-freq (second event)))
 		      :amp (fourth event))))
 
+;;; Example
+#|
+(compile-sounds "images/cat.jpg" "test/" "testieren.mid" 1)
+|#
 (defun compile-sounds (path-to-image folder midi-file &optional track)
-  (let* ((score (midi-to-wavefiddler-score midi-file track))
+  (let* ((score (midi-to-wavefiddler-score (wavefiddling-path midi-file) track))
 	 (unique-events '())
 	 (sounds '()))
     (loop for event in score
@@ -113,8 +108,8 @@
 	      (second event)
 	      nil
 	      folder))
-    ;; TODO hopefully after 5 seconds all soundfiles are generated....
-    ;; (sleep 5)
+    ;; wait for soundfile generation
+    ;;    (sleep 5)
     ;; get all soundfiles from the folder and read their properties
     ;; this is a list of p-lists:  (path: ... name: ... duration: ... pitch: ...)
     (setf sounds (parse-wavefiddler-sound-files folder))
