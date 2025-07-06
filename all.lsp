@@ -9,7 +9,8 @@
     (format nil "~a~a" wavefiddling-src-dir name)))
 
 (load (wavefiddling-path "wavefiddler.lsp"))
-(load (wavefiddling-path "notes.lsp"))
 (load (wavefiddling-path "helpers.lsp"))
+(load (wavefiddling-path "waves.lsp"))
+(load (wavefiddling-path "notes.lsp"))
 
 ;; EOF all.lsp

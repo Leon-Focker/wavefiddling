@@ -37,4 +37,19 @@
       (push "--verbose" arguments))
     (run-wavefiddler (reverse arguments) nil (not verbose))))
 
+(defun image-to-pitched-sound (image-name
+			       name
+			       duration-in-ms
+			       freq
+			       &optional
+				 stretch
+				 (output "output/"))
+  (let* ((srate 48000)
+	 (fft-size (floor srate freq)))
+    (wavefiddler image-name (floor (* (/ duration-in-ms 1000) srate) fft-size)
+		 :fft-size fft-size
+		 :stretch stretch
+		 :output output
+		 :name name)))
+
 ;; EOF wavefiddler.lsp

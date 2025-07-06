@@ -2,21 +2,6 @@
 
 (in-package :layers)
 
-;; ** abstractions
-
-(defun image-to-pitched-sound (path-to-image duration-in-ms pitch
-			       &optional stretch (output "output/"))
-  (let* ((srate 48000)
-	 (freq (if (numberp pitch) pitch (note-to-freq pitch)))
-	 (fft-size (floor srate freq)))
-    (wavefiddler path-to-image (floor (* (/ duration-in-ms 1000) srate) fft-size)
-		 :fft-size fft-size
-		 :stretch stretch
-		 :output output
-		 :name (format nil "~a_~a_~a" (pathname-name path-to-image)
-			       duration-in-ms
-			       freq))))
-
 ;; ** CLM
 
 (defmacro wsound (name &body body)
@@ -26,36 +11,12 @@
 		:force-recomputation nil)
      ,@body))
 
-(defun parse-wavefiddler-sound-file (file-path)
-  (let* ((file-name  (pathname-name file-path))
-	 (info (ppcre:split "[_\.\/]" file-name)))
-    (list :path file-path
-	  :name (first info)
-	  :duration (parse-integer (second info))
-	  :pitch (parse-integer (third info)))))
-
-;;; returns a list of p-lists. Each p-list contains info for a soundfile within
-;;; folder: (path: ... name: ... duration: ... pitch: ...)
-;;; duration is in milliseconds, pitch in Hz
-(defun parse-wavefiddler-sound-files (folder)
-  (let* ((soundfiles (get-sndfiles (wavefiddling-path folder)))
-	 (result))
-    (loop for sound in soundfiles
-	  do (push (parse-wavefiddler-sound-file sound) result))
-    result))
-
-(defun midi-to-wavefiddler-score (midi-file &optional track)
-  (loop for event in (midi-file-to-list midi-file track)
-	collect (list :start (first event)
-		      :duration (round (* (third event) 1000)) ; in ms
-		      :pitch (floor (midi-to-freq (second event)))
-		      :amp (fourth event))))
 
 ;;; Example
 #|
 (compile-sounds "images/cat.jpg" "test/" "testieren.mid" 1)
 |#
-(defun compile-sounds (path-to-image folder midi-file &optional track)
+#+nil(defun compile-sounds (path-to-image folder midi-file &optional track)
   (let* ((score (midi-to-wavefiddler-score (wavefiddling-path midi-file) track))
 	 (unique-events '())
 	 (sounds '())
