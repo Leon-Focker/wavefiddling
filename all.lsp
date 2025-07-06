@@ -8,6 +8,7 @@
   (defun wavefiddling-path (name)
     (format nil "~a~a" wavefiddling-src-dir name)))
 
+(load (wavefiddling-path "wavefiddler.lsp"))
 (load (wavefiddling-path "helpers.lsp"))
 
 ;; EOF all.lsp
