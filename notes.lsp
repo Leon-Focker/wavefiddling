@@ -94,7 +94,13 @@
 ;;; return a list of waves
 (defun generate-waves (note-list image-name folder-name &optional stretch)
   (test-note-list note-list "generate-waves")
-  (loop for note in note-list
+  (loop for note in note-list and i from 0
+	with total = (length note-list)
+	with progress = 0
+	do (let ((new-pro (round (* (/ i total) 100))))
+	     (unless (= new-pro progress)
+	       (setf progress new-pro)
+	       (format t "~&Generating waves: ~a%" progress)))
 	collect (generate-wave
 		 image-name
 		 (note-duration note)
