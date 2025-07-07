@@ -104,7 +104,6 @@
 
 ;; *** transform
 
-;;; TODO might be better to have a #'multiply-freq function?
 (defun oktaviere (note-list)
   (test-note-list note-list "oktaviere")
   ;; copy all events with freq * 2
@@ -114,15 +113,80 @@
 	collect note
 	collect copy))
 
+(defun multiply-spectrum (note-list factor)
+  (test-note-list note-list "multiply-spectrum")
+  (loop for note in note-list
+	do (setf (note-freq note) (* (note-freq note) factor))
+	collect note))
+
+(defun shift-spectrum (note-list offset)
+  (test-note-list note-list "shift-spectrum")
+  (loop for note in note-list
+	do (setf (note-freq note) (+ (note-freq note) offset))
+	collect note))
+
+(defun sort-note-list (note-list)
+  (sort note-list #'(lambda (x y) (< (note-start x) (note-start y)))))
+
+;;; centroid-env is an envelope, where the y-values define the spectral centre
+;;; for all notes at the time of x. The x-values are mapped to range from the
+;;; first to the last note of note-list.
+;;; spread-env is an envelope, where the y-values define the width of the band
+;;; around the centroid that notes can cover. Should be between 0 and 1.
+;;; 0 means that only the centroid frequency is alowed, 1 means all frequencies
+;;; stay unchanged. Something in between shifts all notes toward the centroid.
+(defun apply-spectral-envelope (note-list centroid-env spread-env)
+  (test-note-list note-list "apply-spectral-envelope")
+  (let* ((centroid-first-x (first centroid-env))
+	 (centroid-last-x (lastx centroid-env))
+	 (spread-first-x (first spread-env))
+	 (spread-last-x (lastx spread-env))
+	 first
+	 last
+	 lowest
+	 highest)
+    ;; get first and last start-time, and lowest and highest freq 
+    (loop for note in note-list
+	  for freq = (note-freq note)
+	  for start = (note-start note)
+	  minimize start into smin
+	  maximize start into smax
+	  minimize freq into min
+	  maximize freq into max
+	  finally (setf first smin
+			last smax
+			lowest min
+			highest max))
+    ;; set all new freqs
+    (loop for note in note-list
+	  for start = (note-start note)
+	  for centroid-normalized-pos
+	    = (rescale start first last centroid-first-x centroid-last-x)
+	  for spread-normalized-pos
+	    = (rescale start first last spread-first-x spread-last-x)
+	  for centroid = (interpolate centroid-normalized-pos centroid-env)
+	  for spread = (interpolate spread-normalized-pos spread-env)
+	  for new-min = (- centroid (* (- centroid lowest) spread))
+	  for new-max = (+ centroid (* (- highest centroid) spread))
+	  for new-freq
+	    = (if (= spread 0)
+		  (round centroid)
+		  (abs (round (rescale
+			       (note-freq note)
+			       lowest
+			       highest
+			       new-min
+			       new-max
+			       #'warn))))
+	  do (setf (note-freq note) new-freq)
+	  collect note)))
+
 ;;; tempo-mult-env is an envelope, where the y-values are a multiplier for the
 ;;; tempo of a note. The x-values are mapped to range from the first to the last
 ;;; note of the note-list.
 (defun apply-tempo-curve (note-list tempo-mult-env)
   (test-note-list note-list "apply-tempo-curve")
-  (let* ((sorted-notes
-	   (sort
-	    note-list
-	    #'(lambda (x y) (< (note-start x) (note-start y)))))
+  (let* ((sorted-notes (sort-note-list note-list))
 	 (first (note-start (first sorted-notes)))
 	 (last (note-start (car (last sorted-notes))))
 	 (env-first (first tempo-mult-env))
@@ -154,7 +218,5 @@
     (cdr sorted-notes)))
 
 ;; change sounds depending on stats
-;; freq shift, note shift, freq multiply with centre, note multiply with centre
-;; tempo curve
 
 ;; EOF notes.lsp
