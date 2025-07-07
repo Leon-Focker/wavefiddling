@@ -44,7 +44,7 @@
   (let* ((wave (make-wave :name (pathname-name image-name)
 			  :duration duration-in-ms
 			  :freq freq))
-	 (sound-path (format nil "~a~a"
+	 (sound-path (format nil "~a~a.wav"
 			     (wavefiddling-path output-name)
 			     (format-wave-name wave))))
     (setf (wave-path wave) sound-path)
