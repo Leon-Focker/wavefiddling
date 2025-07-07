@@ -12,5 +12,6 @@
 (load (wavefiddling-path "helpers.lsp"))
 (load (wavefiddling-path "waves.lsp"))
 (load (wavefiddling-path "notes.lsp"))
+(load (wavefiddling-path "compile-sounds.lsp"))
 
 ;; EOF all.lsp

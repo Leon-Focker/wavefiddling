@@ -11,21 +11,13 @@
 
 ;; ** 'methods'
 
+;; *** tests
+
 (defun test-note-list (note-list &optional (fn-name "test-note-list"))
   (unless (listp note-list)
     (error "~a: note-list not a list!" fn-name))
   (unless (loop for note in note-list always (equal 'note (type-of note)))
     (error "~a: not all elements are notes!" fn-name)))
-
-;;; TODO might be better to have a #'multiply-freq function?
-(defun oktaviere (note-list)
-  (test-note-list note-list "oktaviere")
-  ;; copy all events with freq * 2
-  (loop for note in note-list
-	for copy = (copy-structure note)
-	do (setf (note-freq copy) (* (note-freq copy) 2))
-	collect note
-	collect copy))
 
 ;; *** midi
 
@@ -65,6 +57,8 @@
     (loop for event in unique-events
 	  collect (make-note :duration (first event)
 			     :freq (second event)))))
+
+;; *** using waves
 
 ;;; find a wave that fits the info from note within a wave-list. If none is
 ;;; found, return nil.
@@ -107,5 +101,17 @@
 		 (note-freq note)
 		 stretch
 		 folder-name)))
+
+;; *** transform
+
+;;; TODO might be better to have a #'multiply-freq function?
+(defun oktaviere (note-list)
+  (test-note-list note-list "oktaviere")
+  ;; copy all events with freq * 2
+  (loop for note in note-list
+	for copy = (copy-structure note)
+	do (setf (note-freq copy) (* (note-freq copy) 2))
+	collect note
+	collect copy))
 
 ;; EOF notes.lsp
