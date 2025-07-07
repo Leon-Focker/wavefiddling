@@ -114,4 +114,47 @@
 	collect note
 	collect copy))
 
+;;; tempo-mult-env is an envelope, where the y-values are a multiplier for the
+;;; tempo of a note. The x-values are mapped to range from the first to the last
+;;; note of the note-list.
+(defun apply-tempo-curve (note-list tempo-mult-env)
+  (test-note-list note-list "apply-tempo-curve")
+  (let* ((sorted-notes
+	   (sort
+	    note-list
+	    #'(lambda (x y) (< (note-start x) (note-start y)))))
+	 (first (note-start (first sorted-notes)))
+	 (last (note-start (car (last sorted-notes))))
+	 (env-first (first tempo-mult-env))
+	 (env-last (lastx tempo-mult-env)))
+    ;; clone first note
+    (push (copy-structure (first sorted-notes)) sorted-notes)
+    ;; loop through all notes and set new scaled starts and duration
+    (loop for last-note in sorted-notes and note in (cdr sorted-notes)
+	  with last-old-start = 0	  
+	  for old-start = (note-start note)
+	  for dur-since-last-old-start = (- (note-start note) last-old-start)
+	  for normalized-pos = (rescale old-start first last env-first env-last)
+	  for multiplier = (interpolate normalized-pos tempo-mult-env)
+	  for new-dur-since-last-old-start
+	    = (round (/ dur-since-last-old-start multiplier))
+	  for duration-ratio
+	    = (/ (note-duration last-note)
+		 (if (= 0 dur-since-last-old-start)
+		     ;; add small error to avoid / 0 in chords
+		     (1+ dur-since-last-old-start) 
+		     dur-since-last-old-start))
+	  for new-duration = (round (* duration-ratio new-dur-since-last-old-start))
+	  do (setf (note-start note)
+		   (+ (note-start last-note) new-dur-since-last-old-start)
+		   (note-duration last-note)
+		   new-duration
+		   last-old-start old-start))
+    ;; return note-list
+    (cdr sorted-notes)))
+
+;; change sounds depending on stats
+;; freq shift, note shift, freq multiply with centre, note multiply with centre
+;; tempo curve
+
 ;; EOF notes.lsp
