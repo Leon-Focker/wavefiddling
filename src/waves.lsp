@@ -40,7 +40,7 @@
 	  (wave-freq wave)))
 
 (defun generate-wave (image-name duration-in-ms freq
-		      &optional stretch (output-name "output/"))
+		      &optional stretch (output-name "tmp-files/"))
   (let* ((wave (make-wave :name (pathname-name image-name)
 			  :duration duration-in-ms
 			  :freq freq))

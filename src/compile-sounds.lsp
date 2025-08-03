@@ -13,7 +13,8 @@
 	(name (gensym)))
     `(let* ((,note-list-var (midi-to-notes (wavefiddling-path ,midi-file-name) ,track))
 	    (,wave-list '())
-	    (,name (pathname-name ,midi-file-name)))
+	    (,name (format nil "~a_~a" (pathname-name ,midi-file-name)
+			   (pathname-name ,image-name))))
        ;; set timbre-ids for notes
        (loop for note in ,note-list-var
 	     with name = (pathname-name ,image-name)
@@ -29,8 +30,8 @@
        (notes-to-soundfile ,note-list-var ,wave-list ,name))))
 
 #|
-(compile-sounds note-list "images/cat.jpg" "test/" "testieren.mid" 1 nil
-  (setf note-list (oktaviere note-list)))
+(compile-sounds note-list "images/cat.jpg" "test/" "testieren.mid" 1 nil ;
+(setf note-list (oktaviere note-list)))	;
 |#
 
 ;; EOF compile-sounds.lsp

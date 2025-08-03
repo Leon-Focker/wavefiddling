@@ -4,10 +4,10 @@
 
 ;; ** CLM
 
-(defmacro wsound (name &body body)
+(defmacro wsound (name out-channels &body body)
   `(with-sound (:header-type clm::mus-riff :sampling-rate 48000
 		:output (format nil "~a~a" (wavefiddling-path ,name) ".wav")
-		:channels 2 :play nil :scaled-to 0.98
+		:channels ,out-channels :play nil :scaled-to 0.98
 		:force-recomputation nil)
      ,@body))
 

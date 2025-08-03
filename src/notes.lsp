@@ -3,11 +3,12 @@
 (in-package :layers-utils)
 
 (defstruct note
-  (start 0 :type integer)               ; in miliseconds
-  (duration 0 :type integer)            ; in miliseconds
+  (start 0 :type integer)                   ; in miliseconds
+  (duration 0 :type integer)                ; in miliseconds
   (freq (sc::midi-to-freq 60) :type number) ; in Hz
-  (velocity 0.7 :type number)           ; 0-1
-  (timbre-id "" :type string))
+  (velocity 0.7 :type number)               ; 0-1
+  (timbre-id "" :type string)               ;
+  (panning 45 :type integer))               ; between 0° and 360°
 
 ;; ** 'methods'
 
@@ -73,22 +74,42 @@
 			 (note-timbre-id note)))
 	  return wave))
 
-(defun notes-to-soundfile (note-list
-			   wave-list
+
+(defun notes-to-soundfile (note-list wave-list
 			   &optional (file-name "soundfile"))
+  (format t "~&Generating Soundfile!~&")
   ;; sanity checks
   (test-note-list note-list "notes-to-soundfile")
   (test-wave-list wave-list "notes-to-soundfile")
-  ;; call to clm and samp0
-  (wsound file-name
+  ;; getting the out-channels like this is a bit meh but maybe
+  ;; I have a better idea in the future
+  (let (min-degree
+	max-degree
+	out-channels)
     (loop for note in note-list
-	  for wave = (find-wave-with-note wave-list note)
-	  for path = (when wave (wave-path wave))
-	  do (if (print path)
-		 (samp0 path
-			(/ (note-start note) 1000.0)
-			:amp (note-velocity note))
-		 (warn "soundfile not found!")))))
+	  for pan = (note-panning note)
+	  minimize pan into min
+	  maximize pan into max
+	  finally (setf min-degree min
+			max-degree max))
+    ;; set channels to 4 when we have more than 0-90 degrees panning
+    (setf out-channels
+	  (if (or (< min-degree 0) (> max-degree 90))
+	      4
+	      2))
+    ;; call to clm and samp0
+    (wsound file-name out-channels
+      (loop for note in note-list
+	    for wave = (find-wave-with-note wave-list note)
+	    for path = (when wave (wave-path wave))
+	    do (if path
+		   (samp0 path
+			  (/ (note-start note) 1000.0)
+			  :amp (note-velocity note)
+			  :degree (note-panning note)
+			  :out-channels out-channels
+			  :printing nil)
+		   (warn "soundfile not found!"))))))
 
 ;;; generate all soundfiles needed from a list of notes into a folder.
 ;;; return a list of waves
@@ -222,6 +243,53 @@
 		   last-old-start old-start))
     ;; return note-list
     (cdr sorted-notes)))
+
+;;; - pan-spread-env is an envelope, where the y-values define how many
+;;; panning-degrees the spectrum will spread over. The x-values are
+;;; mapped to range from the first to the last note of note-list.
+;;; - offset-env is the same for an offset ('normal panning').
+;;; -> Thus and env and offset of '(0 0  1 0) '(0 45  1 45) would place all
+;;; sounds in the middle, while '(0 0  1 90) '(0 0  1 1) would start at the
+;;; left and then slowly fill the entire stereo stage.
+(defun apply-panning-curve (note-list pan-spread-env
+			    &optional (offset-env '(0 0  1 0)))
+  (test-note-list note-list "apply-panning-curve")
+  (let* ((spread-first-x (first pan-spread-env))
+	 (spread-last-x (lastx pan-spread-env))
+	 (offset-first-x (first offset-env))
+	 (offset-last-x (lastx offset-env))
+	 first
+	 last
+	 lowest
+	 highest
+	 ambitus)
+    ;; get first and last start-time, and lowest and highest freq 
+    (loop for note in note-list
+	  for freq = (note-freq note)
+	  for start = (note-start note)
+	  minimize start into smin
+	  maximize start into smax
+	  minimize freq into min
+	  maximize freq into max
+	  finally (setf first smin
+			last smax
+			lowest min
+			highest max))
+    (setf ambitus (- highest lowest))
+    ;; set new panning
+    (loop for note in note-list
+	  for start = (note-start note)
+	  for spread-normalized-pos
+	    = (rescale start first last spread-first-x spread-last-x)
+	  for offset-normalized-pos
+	    = (rescale start first last offset-first-x offset-last-x)
+	  for spread = (interpolate spread-normalized-pos pan-spread-env)
+	  for offset = (interpolate offset-normalized-pos offset-env)
+	  ;; todo: maybe log would be better instead of expt?
+	  for freq-ratio = (expt (/ (- (note-freq note) lowest) ambitus) 0.25)
+	  do (setf (note-panning note)
+		   (round (+ (* spread freq-ratio) offset))))
+    note-list))
 
 ;; change sounds depending on stats
 
