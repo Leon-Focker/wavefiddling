@@ -1,5 +1,7 @@
 ;; * compile-sounds
 
+(in-package :layers-utils)
+
 (defmacro compile-sounds (note-list-var
 			  image-name
 			  folder-name

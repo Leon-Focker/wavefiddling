@@ -1,12 +1,12 @@
 ;; * waves
 
-(in-package :layers)
+(in-package :layers-utils)
 
 (defstruct wave
   (path "" :type string)                           ; path to soundfile
   (name "" :type string)                           ; name == note-timbre-id
   (duration 0 :type integer)                       ; in ms
-  (freq (round (midi-to-freq 60)) :type integer))  ; in Hz
+  (freq (round (sc::midi-to-freq 60)) :type integer))  ; in Hz
 
 ;; ** 'methods'
 

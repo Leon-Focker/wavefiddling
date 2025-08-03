@@ -1,11 +1,11 @@
 ;; * notes
 
-(in-package :layers)
+(in-package :layers-utils)
 
 (defstruct note
   (start 0 :type integer)               ; in miliseconds
   (duration 0 :type integer)            ; in miliseconds
-  (freq (midi-to-freq 60) :type number) ; in Hz
+  (freq (sc::midi-to-freq 60) :type number) ; in Hz
   (velocity 0.7 :type number)           ; 0-1
   (timbre-id "" :type string))
 
@@ -28,7 +28,7 @@
 	(starts '())
 	(velos '()))
     (loop for note in note-list
-	  do (push (freq-to-midi (note-freq note)) pitches)
+	  do (push (sc::freq-to-midi (note-freq note)) pitches)
 	  do (push (/ (note-duration note) 1000) durs)
 	  do (push (/ (note-start note) 1000) starts)
 	  do (push (note-velocity note) velos))
@@ -40,7 +40,7 @@
   (loop for event in (midi-file-to-list midi-file track)
 	collect (make-note :start (round (* (first event) 1000))    ; in ms
 			   :duration (round (* (third event) 1000)) ; in ms
-			   :freq (floor (midi-to-freq (second event)))
+			   :freq (floor (sc::midi-to-freq (second event)))
 			   :velocity (fourth event))))
 
 ;;; get a wave-list with unique pairs of duration and frequency from midi notes
@@ -50,7 +50,7 @@
     (loop for event in (midi-file-to-list midi-file track)
 	  ;; list of duration in ms and freq in Hz
 	  for ls = (list (round (* (third event) 1000))
-			 (floor (midi-to-freq (second event))))
+			 (floor (sc::midi-to-freq (second event))))
 	  do (unless (find ls unique-events :test 'equal)
 	       (push ls unique-events)))
     ;; make notes

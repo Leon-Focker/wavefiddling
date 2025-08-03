@@ -1,6 +1,6 @@
 ;; * helpers.lsp
 
-(in-package :layers)
+(in-package :layers-utils)
 
 ;; ** CLM
 

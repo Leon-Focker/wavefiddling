@@ -1,6 +1,6 @@
 ;; * wavefiddler
 
-(in-package :layers)
+(in-package :layers-utils)
 
 (defun run-wavefiddler (argument-list &optional path-to-fiddler output)
   (unless (listp argument-list)
